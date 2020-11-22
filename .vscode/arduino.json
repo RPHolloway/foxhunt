@@ -1,0 +1,6 @@
+{
+    "sketch": "foxhunt.ino",
+    "port": "COM17",
+    "board": "arduino:avr:uno",
+    "programmer": "AVRISP mkII"
+}
