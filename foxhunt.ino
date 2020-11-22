@@ -26,7 +26,7 @@ extern "C" void service_antennas(void *arg)
 
     while (true)
     {
-        coop_wait(0, 1667);
+        coop_idle(1667);
     }
 }
 
@@ -35,35 +35,23 @@ void button_change()
 {
     delay(10);
     buttonState = (buttonState_t)digitalRead(GPIO_BUTTON);
+    
+    // Notify the button handler of the state change
+    coop_notify(0);
 }
 
-void setup()
+extern "C" void service_button(void *arg)
 {
-    // Initalize the display
-    EEPROM.get(0, LedOffset);
-    Display_Init(LedOffset);
-
-    // Attach button
-    pinMode(GPIO_BUTTON, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(GPIO_BUTTON), button_change, CHANGE);
-
-    coop_sched_thread(service_antennas, "antennas", 0, (void *)NULL);
-    //coop_sched_service();
-}
-
-void loop()
-{
-    static buttonState_t previousButtonState = buttonState_Released;
-    static unsigned long lastDisplayChange = 0;
-    const int holdDelay = 500;
-    static bool inCalibrationMode = false;
-
-    if (buttonState != previousButtonState)
+    while (true)
     {
+        const int holdDelay = 500;
+        static unsigned long lastButtonEvent = 0;
+        static bool inCalibrationMode = false;
+        
         // Check if the button has been held for longer than
         // the hold delay.
         if (buttonState == buttonState_Released 
-            && (millis() - lastDisplayChange) > holdDelay)
+            && (millis() - lastButtonEvent) > holdDelay)
         {
             if (!inCalibrationMode)
             {
@@ -87,7 +75,24 @@ void loop()
             }
         }
 
-        previousButtonState = buttonState;
-        lastDisplayChange = millis();
+        lastButtonEvent = millis();
+        coop_wait(0, 0);
     }
 }
+
+void setup()
+{
+    // Initalize the display
+    EEPROM.get(0, LedOffset);
+    Display_Init(LedOffset);
+
+    // Attach button
+    pinMode(GPIO_BUTTON, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(GPIO_BUTTON), button_change, CHANGE);
+
+    coop_sched_thread(service_antennas, "antennas", 0, (void *)NULL);
+    coop_sched_thread(service_button, "button", 0, (void *)NULL);
+    coop_sched_service();
+}
+
+void loop() { }
