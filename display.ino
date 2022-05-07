@@ -6,9 +6,18 @@
 
 #define TRIGGER 2
 
+#define ANTENNA0 A0
+#define ANTENNA1 A1
+#define ANTENNA2 A2
+#define ANTENNA3 A3
+
+#define CAPACITOR0 7
+#define CAPACITOR1 6
+#define CAPACITOR2 5
+
 uint8_t state = 0;
 
-#define SAMPLE_COUNT 16
+#define SAMPLE_COUNT 1
 uint8_t samples[SAMPLE_COUNT] = {0};
 uint8_t* samplePtr = samples;
 
@@ -19,43 +28,39 @@ ISR(TIMER0_COMPA_vect)
   switch (state)
   {
     case 0:
-      // Turn off antenna 3
-      // Turn on antenna 0
-      // Turn on capacitor 0
+      AntennaSet(ANTENNA0);
+      CapacitorSet(0);
       break;
 
     case 2:
-      // Turn on capacitor 1
+      CapacitorSet(1);
       break;
 
     case 4:
-      // Turn off antenna 0
-      // Turn on antenna 1
-      // Turn on capacitor 2
+      AntennaSet(ANTENNA1);
+      CapacitorSet(2);
       break;
 
     case 6:
-      // Turn on capacitor 3
+      CapacitorSet(3);
       break;
 
     case 8:
-      // Turn off antenna 1
-      // Turn on antenna 2
-      // Turn on capacitor 4
+      AntennaSet(ANTENNA2);
+      CapacitorSet(4);
       break;
 
     case 10:
-      // Turn on capactior 5
+      CapacitorSet(5);
       break;
 
     case 12:
-      // Turn off antenna 2
-      // Turn on antenna 3
-      // Turn on capacitor 6
+      AntennaSet(ANTENNA3);
+      CapacitorSet(6);
       break;
 
     case 14:
-      // Turn on capacitor 7
+      CapacitorSet(7);
       break;
 
     default:
@@ -145,7 +150,54 @@ void TriggerInit(void)
   attachInterrupt(digitalPinToInterrupt(TRIGGER), Trigger, RISING);
 }
 
+void AntennaOff(void)
+{
+  digitalWrite(ANTENNA0, LOW);
+  digitalWrite(ANTENNA1, LOW);
+  digitalWrite(ANTENNA2, LOW);
+  digitalWrite(ANTENNA3, LOW);
+}
+
+void AntennaSet(uint8_t antenna)
+{
+  AntennaOff();
+  digitalWrite(antenna, HIGH);
+}
+
+void AntennaInit(void)
+{
+  pinMode(ANTENNA0, OUTPUT);
+  pinMode(ANTENNA1, OUTPUT);
+  pinMode(ANTENNA2, OUTPUT);
+  pinMode(ANTENNA3, OUTPUT);
+
+  digitalWrite(ANTENNA0, LOW);
+  digitalWrite(ANTENNA1, LOW);
+  digitalWrite(ANTENNA2, LOW);
+  digitalWrite(ANTENNA3, LOW);
+}
+
+void CapacitorSet(uint8_t capacitor)
+{
+  digitalWrite(CAPACITOR0, (capacitor & 0b001) >> 0);
+  digitalWrite(CAPACITOR1, (capacitor & 0b010) >> 1);
+  digitalWrite(CAPACITOR2, (capacitor & 0b100) >> 2);
+}
+
+void CapacitorInit(void)
+{
+  pinMode(CAPACITOR0, OUTPUT);
+  pinMode(CAPACITOR1, OUTPUT);
+  pinMode(CAPACITOR2, OUTPUT);
+
+  digitalWrite(CAPACITOR0, LOW);
+  digitalWrite(CAPACITOR1, LOW);
+  digitalWrite(CAPACITOR2, LOW);
+}
+
 void setup() {
+  AntennaInit();
+  CapacitorInit();
   DisplayInit();
   BlinkInit();
   TriggerInit();
