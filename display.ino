@@ -4,15 +4,12 @@
 #define LED3 11
 #define NABL 12
 
-#define TIMER 13
 #define TRIGGER 2
 
 uint8_t state = 0;
 
 ISR(TIMER0_COMPA_vect)
 {
-  digitalWrite(TIMER, !digitalRead(TIMER));
-
   state &= 0b1111;
 
   switch (state)
@@ -66,8 +63,6 @@ ISR(TIMER0_COMPA_vect)
 
 void TimerInit(void)
 {
-  pinMode(TIMER, OUTPUT);
-
   cli(); // stop interrupts
   TCCR0A = 0; // clear TCCR0A
   TCCR0B = 0; // clear TCCR0B
