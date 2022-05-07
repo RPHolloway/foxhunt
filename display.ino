@@ -8,6 +8,10 @@
 
 uint8_t state = 0;
 
+#define SAMPLE_COUNT 16
+uint8_t samples[SAMPLE_COUNT] = {0};
+uint8_t* samplePtr = samples;
+
 ISR(TIMER0_COMPA_vect)
 {
   state &= 0b1111;
@@ -117,7 +121,21 @@ void DisplayInit(void)
 
 void Trigger(void)
 {
-  Display(state);
+  if (samplePtr == (samples + SAMPLE_COUNT))
+  {
+    samplePtr = samples;
+  }
+
+  *samplePtr = state;
+  samplePtr++;
+
+  uint8_t total = 0;
+  for (uint8_t i=0; i < SAMPLE_COUNT; i++)
+  {
+    total += samples[i];
+  }
+
+  Display(total/SAMPLE_COUNT);
   TCNT1 = 0;
 }
 
