@@ -74,8 +74,27 @@ void TimerInit(void)
   sei(); // start interrupts
 }
 
+ISR(TIMER1_COMPA_vect)
+{
+  digitalWrite(NABL, !digitalRead(NABL));
+}
+
+void BlinkInit(void)
+{
+  cli(); // stop interrupts
+  TCCR1A = 0; // clear TCCR0A
+  TCCR1B = 0; // clear TCCR0B
+  TCNT1 = 0; // initialize counter to 0
+  OCR1A = 7812; // (16*10^6) / (2*1024) - 1
+  TCCR1B |= (1 << WGM12); // turn on CTC mode
+  TCCR1B |= (1 << CS12) | (1 << CS10); // 1024 bit prescaler
+  TIMSK1 |= (1 << OCIE1A); // enable timer compare interrupt
+  sei(); // start interrupts
+}
+
 void Display(uint8_t led)
 {
+  digitalWrite(NABL, LOW);
   digitalWrite(LED0, (led & 0b0001) >> 0);
   digitalWrite(LED1, (led & 0b0010) >> 1);
   digitalWrite(LED2, (led & 0b0100) >> 2);
@@ -99,6 +118,7 @@ void DisplayInit(void)
 void Trigger(void)
 {
   Display(state);
+  TCNT1 = 0;
 }
 
 void TriggerInit(void)
@@ -109,6 +129,7 @@ void TriggerInit(void)
 
 void setup() {
   DisplayInit();
+  BlinkInit();
   TriggerInit();
   TimerInit();
 }
