@@ -1,16 +1,21 @@
+// Display Pins
 #define LED0 8
 #define LED1 9
 #define LED2 10
 #define LED3 11
 #define NABL 12
 
+// Zero-Crossing Trigger Pins
 #define TRIGGER 2
+#define TRIGGER_MODE RISING
 
+// Antenna Switch Pins
 #define ANTENNA0 A0
 #define ANTENNA1 A1
 #define ANTENNA2 A2
 #define ANTENNA3 A3
 
+// Filter Capacitor Pins
 #define CAPACITOR0 7
 #define CAPACITOR1 6
 #define CAPACITOR2 5
@@ -21,6 +26,10 @@ uint8_t state = 0;
 uint8_t samples[SAMPLE_COUNT] = {0};
 uint8_t* samplePtr = samples;
 
+/* ---State Machine--- */
+/**
+ * @brief State machine to drive the antennas and capacitors.
+ */
 ISR(TIMER0_COMPA_vect)
 {
   state &= 0b1111;
@@ -70,7 +79,11 @@ ISR(TIMER0_COMPA_vect)
   state++;
 }
 
-void TimerInit(void)
+/**
+ * @brief Initialize the timer to drive the antenna and filter
+ *        state machine.
+ */
+void StateMachineInit(void)
 {
   cli(); // stop interrupts
   TCCR0A = 0; // clear TCCR0A
@@ -83,11 +96,18 @@ void TimerInit(void)
   sei(); // start interrupts
 }
 
+/* ---Blink--- */
+/**
+ * @brief Timer 1 interrupt to blink the LED when the signal is lost.
+ */
 ISR(TIMER1_COMPA_vect)
 {
   digitalWrite(NABL, !digitalRead(NABL));
 }
 
+/**
+ * @brief Initialize the timer to blink the LED when the signal is lost.
+ */
 void BlinkInit(void)
 {
   cli(); // stop interrupts
@@ -101,7 +121,13 @@ void BlinkInit(void)
   sei(); // start interrupts
 }
 
-void Display(uint8_t led)
+/* ---Display--- */
+/**
+ * @brief Set the display to display the choosen LED.
+ * 
+ * @param led LED number (0-15) to display.
+ */
+void DisplaySet(uint8_t led)
 {
   digitalWrite(NABL, LOW);
   digitalWrite(LED0, (led & 0b0001) >> 0);
@@ -110,11 +136,17 @@ void Display(uint8_t led)
   digitalWrite(LED3, (led & 0b1000) >> 3);
 }
 
+/**
+ * @brief Turn off the display
+ */
 void DisplayOff(void)
 {
   digitalWrite(NABL, HIGH);
 }
 
+/**
+ * @brief Initialize the display
+ */
 void DisplayInit(void)
 {
   pinMode(NABL, OUTPUT);
@@ -124,32 +156,49 @@ void DisplayInit(void)
   pinMode(LED3, OUTPUT);
 }
 
+/*--- Trigger ---*/
+/**
+ * @brief Zero crossing interrupt
+ */
 void Trigger(void)
 {
+  // If the samplePtr has passed the top of the buffer
+  // reset it to the front of the buffer.
   if (samplePtr == (samples + SAMPLE_COUNT))
   {
     samplePtr = samples;
   }
-
+  
+  // Sample the state
   *samplePtr = state;
+  // Move the pointer to the next slot in the buffer
   samplePtr++;
 
+  // Sum the buffer
   uint8_t total = 0;
   for (uint8_t i=0; i < SAMPLE_COUNT; i++)
   {
     total += samples[i];
   }
 
-  Display(total/SAMPLE_COUNT);
+  // Display the average value of the buffer
+  DisplaySet(total/SAMPLE_COUNT);
   TCNT1 = 0;
 }
 
+/**
+ * @brief Initialize the zero crossing trigger interrupt
+ */
 void TriggerInit(void)
 {
   pinMode(TRIGGER, INPUT);
-  attachInterrupt(digitalPinToInterrupt(TRIGGER), Trigger, RISING);
+  attachInterrupt(digitalPinToInterrupt(TRIGGER), Trigger, TRIGGER_MODE);
 }
 
+/* ---Antenna--- */
+/**
+ * @brief Turn off all antenna switches.
+ */
 void AntennaOff(void)
 {
   digitalWrite(ANTENNA0, LOW);
@@ -158,12 +207,21 @@ void AntennaOff(void)
   digitalWrite(ANTENNA3, LOW);
 }
 
+/**
+ * @brief Turn foo all antenna switches and turn on
+ *        the requested interrupt.
+ * 
+ * @param antenna pin number of the antenna switch to enable
+ */
 void AntennaSet(uint8_t antenna)
 {
   AntennaOff();
   digitalWrite(antenna, HIGH);
 }
 
+/**
+ * @brief Initialize the antenna switches.
+ */
 void AntennaInit(void)
 {
   pinMode(ANTENNA0, OUTPUT);
@@ -177,6 +235,12 @@ void AntennaInit(void)
   digitalWrite(ANTENNA3, LOW);
 }
 
+/* ---Capacitors--- */
+/**
+ * @brief Set the filter to use the choosen capacitor.
+ * 
+ * @param capacitor capacitor (0-7) to use
+ */
 void CapacitorSet(uint8_t capacitor)
 {
   digitalWrite(CAPACITOR0, (capacitor & 0b001) >> 0);
@@ -184,6 +248,9 @@ void CapacitorSet(uint8_t capacitor)
   digitalWrite(CAPACITOR2, (capacitor & 0b100) >> 2);
 }
 
+/**
+ * @brief Initialize the filter capacitors
+ */
 void CapacitorInit(void)
 {
   pinMode(CAPACITOR0, OUTPUT);
@@ -201,7 +268,7 @@ void setup() {
   DisplayInit();
   BlinkInit();
   TriggerInit();
-  TimerInit();
+  StateMachineInit();
 }
 
 void loop() { }
