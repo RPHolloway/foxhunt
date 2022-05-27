@@ -20,6 +20,8 @@
 #define CAPACITOR1 6
 #define CAPACITOR2 5
 
+#define TEST_SIGNAL 13
+
 uint8_t state = 0;
 
 #define SAMPLE_COUNT 1
@@ -39,6 +41,10 @@ ISR(TIMER0_COMPA_vect)
     case 0:
       AntennaSet(ANTENNA0);
       CapacitorSet(0);
+      
+      #ifdef TEST_SIGNAL
+      digitalWrite(TEST_SIGNAL, LOW);
+      #endif
       break;
 
     case 2:
@@ -57,6 +63,10 @@ ISR(TIMER0_COMPA_vect)
     case 8:
       AntennaSet(ANTENNA2);
       CapacitorSet(4);
+      
+      #ifdef TEST_SIGNAL
+      digitalWrite(TEST_SIGNAL, HIGH);
+      #endif
       break;
 
     case 10:
@@ -263,6 +273,11 @@ void CapacitorInit(void)
 }
 
 void setup() {
+  #ifdef TEST_SIGNAL
+  pinMode(TEST_SIGNAL, OUTPUT);
+  digitalWrite(TEST_SIGNAL, LOW);
+  #endif
+  
   AntennaInit();
   CapacitorInit();
   DisplayInit();
